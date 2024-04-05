@@ -1,111 +1,159 @@
-import { useState, useRef, useEffect } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
-import './App.css';
+import { useState, useRef, useLayoutEffect, useReducer } from "react";
+
+import "./App.css";
+
+
+
+
+
 
 function App() {
   const items = [
-    'apple',
-    'banana',
-    'orange',
-    'grapes',
-    'kiwi',
+    "apple",
+    "banana",
     'pineapple',
     'watermelon',
+    "orange",
+    "kiwi",
     'strawberry',
+    "grapes",
     'blueberry',
     'mango',
     'pear',
     'peach',
   ];
 
+
+
+
   const moreItems = [
-    'cherry',
-    'lemon',
-    'lime',
-    'coconut',
-    'papaya',
-    'plum',
-    'fig',
-    'melon',
-    'raspberry',
-    'blackberry',
-    'cranberry',
-    'apricot',
+    "cherry",
+    "lemon",
+    "lime",
+    "coconut",
+    "papaya",
+    "plum",
+    "fig",
+    "melon",
+    "raspberry",
+    "blackberry",
+    "cranberry",
+    "apricot",
   ];
 
-  const [count, setCount] = useState(0);
-  const container = useRef();
-  const [x, setXValue] = useState(0);
-  const [childWidth, setChildWidth] = useState();
-  const [kids, updateKids] = useState();
+
+  const scrollWrapperRef = useRef();
+
+  const [tabNodes, updatetabNodes] = useState();
   const [data, updateData] = useState(items);
-  const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
-    if (isLoaded) {
-      container.current.style.transform = `translate3d(-${
-        container.current.scrollWidth - container.current.clientWidth
-      }px, 0px, 0px)`;
-      console.log(
-        container.current.scrollWidth - container.current.clientWidth
-      );
-      const width = kids[count].clientWidth;
-      console.log(kids[0], kids[count]);
-      setChildWidth(width);
-      setXValue(container.current.scrollWidth - container.current.clientWidth);
-      setIsLoaded(false);
-      console.log({ kids, data, x, childWidth });
+
+
+
+
+  const transformWrapper = (transformValue) => {
+    scrollWrapperRef.current.style.transform = `translate3d(-${transformValue}px,0px,0px)`;
+  };
+
+
+  const [tabBarScrollState, updateTabBarScrollState] = useReducer(
+    (prev, next) => {
+      const newEvent = { ...prev, ...next };
+
+      console.log({ xAxis: newEvent.xAxisValue })
+
+      return newEvent;
+    },
+    {
+      tabWidthSum: null,
+      selectedTabIndex: 0,
+      setEndIndex: null,
+      updatedByKeyboardEvent: false,
+      startingTabIndex: 0,
+      xAxisValue: 0,
+      currentTabNodeWidth: null,
+      scrolledEndValue: 0,
+      hasScrolledToEnd: false,
+    },
+  );
+
+
+
+
+
+  useLayoutEffect(() => {
+    updatetabNodes(scrollWrapperRef.current.childNodes);
+
+  }, [scrollWrapperRef]);
+
+  const calculateWidth = (event) => {
+    const scrollWrapperRefWidth = scrollWrapperRef.current.clientWidth;
+    if (event === 'right') {
+      let tabWidthSum = 0;
+      for (let i = 0; i < tabNodes.length; i++) {
+        const width = tabNodes[i].clientWidth;
+        if (tabWidthSum + width > scrollWrapperRefWidth + tabBarScrollState.xAxisValue) {
+          const difference = tabWidthSum + width - scrollWrapperRefWidth;
+          console.log({ difference })
+          transformWrapper(difference)
+          updateTabBarScrollState({ xAxisValue: difference, startingTabIndex: tabBarScrollState + 1 });
+          break;
+        }
+        tabWidthSum += width;
+      }
+
     }
-  }, [isLoaded]);
 
-  useEffect(() => {
-    updateKids(container.current.childNodes);
-  }, [container]);
+    if (event === 'left') {
+      let tabWidthSum = 0;
+      for (let i = 0; i < tabNodes.length; i++) {
+        const width = tabNodes[i].clientWidth;
+        if (tabWidthSum + width >= tabBarScrollState.xAxisValue) {
+          transformWrapper(tabWidthSum)
+          updateTabBarScrollState({ xAxisValue: tabWidthSum, startingTabIndex: tabBarScrollState - 1 });
+
+          break;
+        }
+        tabWidthSum += width;
+      }
+
+    }
+  };
+
+
 
   const moveRight = () => {
-    const width = kids[count].clientWidth;
-    setChildWidth(width);
-
-    setXValue(x + width);
-    setCount(count + 1);
-
-    container.current.style.transform = `translate3d(-${width + x}px,0px,0px)`;
+    calculateWidth('right');
   };
 
   const moveLeft = () => {
-    setCount(count - 1);
 
-    const width = kids[count - 1].clientWidth;
-    setChildWidth(width);
-    setXValue(x - childWidth);
-    console.log(x, width, childWidth);
-    container.current.style.transform = `translate3d(-${x - width}px,0px,0px)`;
+    calculateWidth('left')
   };
 
   const addItem = () => {
-    setCount(data.length);
+
     const randomIndex = Math.floor(Math.random() * 12) + 1;
     updateData((prevData) => [...prevData, moreItems[randomIndex]]);
 
-    setIsLoaded(true);
+
   };
 
   return (
     <>
       <div className="main">
         <div>
-          <button disabled={count === 0} onClick={() => moveLeft()}>
+          <button disabled={tabBarScrollState.xAxisValue === 0} onClick={() => moveLeft()}>
             left
           </button>
-          <button disabled={count === data.length} onClick={() => moveRight()}>
+          <button disabled={tabBarScrollState.xAxisValue === data.length} onClick={() => moveRight()}>
             right
           </button>
         </div>
         <div className="viewport">
-          <div className="container" ref={container}>
-            {data.map((item) => (
-              <div className="slide">
+          <div className="container" ref={scrollWrapperRef}>
+            {data.map((item, index) => (
+              <div className="slide" key={index}>
                 <button className="slide__number">{item}</button>
               </div>
             ))}

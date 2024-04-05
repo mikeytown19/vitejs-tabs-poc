@@ -57,6 +57,7 @@
 .viewport {
   overflow: hidden;
   margin: 16px 0px;
+  border: solid red 2px;
 }
 
 .slide {
